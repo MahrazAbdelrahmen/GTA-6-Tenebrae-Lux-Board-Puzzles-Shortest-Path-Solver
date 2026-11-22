@@ -1,0 +1,20 @@
+# Tenebrae Lux puzzles
+#
+# x = block   t = pyramid   v = plate   - = empty
+# Either a [Name] line followed by four rows, or  Name: row/row/row/row
+
+[Opening]
+xxxx
+----
+t--t
+-vv-
+
+# Extra boards, easiest first (all solvable)
+Extra 1: v--v/-xt-/-tx-/v--v
+Extra 2: xvvx/----/----/t--t
+Extra 3: x--x/-t--/--v-/x--t
+Extra 4: -xv-/--x-/-v--/t---
+Extra 5: --vv/---x/--x-/-x-t
+Extra 6: -x-x/---v/vv--/x--t
+Extra 7: t--x/---v/x---/--xv
+Extra 8: t-xv/----/--vx/xv--

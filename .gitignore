@@ -1,0 +1,9 @@
+/build/
+/dist/
+/cmake-build-*/
+/tenebrae
+/tenebrae.exe
+*.o
+*.obj
+__pycache__/
+*.pyc

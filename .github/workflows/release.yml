@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - runner: windows-2022
+            archive: tenebrae-windows-x86_64.zip
+            executable: tenebrae.exe
+          - runner: ubuntu-22.04
+            archive: tenebrae-linux-x86_64.tar.gz
+            executable: tenebrae
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libxcursor-dev libxinerama-dev xvfb xauth
+      - name: Build and stage
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target tenebrae --parallel
+          cmake --install build --component game --prefix "$PWD/dist/game"
+      - name: Test bundled puzzles
+        working-directory: dist/game
+        run: |
+          ./${{ matrix.executable }} --solve puzzles.txt > ../solutions.txt
+          grep -Fq '9 puzzles, 0 warnings' ../solutions.txt
+          test "$(grep -c 'SOLVED in' ../solutions.txt)" -eq 9
+      - name: Test Linux graphics
+        if: runner.os == 'Linux'
+        working-directory: dist/game
+        run: |
+          xvfb-run -a -s "-screen 0 1600x900x24" ./tenebrae --shot "$RUNNER_TEMP/board.png"
+          test -s "$RUNNER_TEMP/board.png"
+      - name: Package
+        working-directory: dist/game
+        run: |
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            cmake -E tar cf ../${{ matrix.archive }} --format=zip -- tenebrae.exe puzzles.txt raylib-LICENSE
+          else
+            tar -czf ../${{ matrix.archive }} tenebrae puzzles.txt raylib-LICENSE
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive }}
+          path: dist/${{ matrix.archive }}
+          if-no-files-found: error
+
+  release:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Attach packages to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --json isDraft > release.json; then
+            jq -e '.isDraft' release.json
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --draft --generate-notes
+          fi

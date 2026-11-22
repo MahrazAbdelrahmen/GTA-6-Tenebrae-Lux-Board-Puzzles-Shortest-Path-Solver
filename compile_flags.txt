@@ -1,0 +1,3 @@
+-IC:/raylib/raylib/src
+-std=c99
+--target=x86_64-w64-mingw32
