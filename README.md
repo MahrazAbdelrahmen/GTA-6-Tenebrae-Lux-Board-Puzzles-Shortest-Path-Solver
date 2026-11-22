@@ -22,13 +22,3 @@ cmake --build build --parallel
 ./build/tenebrae
 ```
 
-### Release
-
-Once the project is on GitHub, push a version tag from the commit to release.
-
-```sh
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-GitHub Actions builds both x86-64 packages and attaches them to a draft in **Releases**. Open the draft and choose **Publish release**.
